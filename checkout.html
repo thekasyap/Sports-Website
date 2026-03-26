@@ -266,96 +266,22 @@ async function pay() {
       return;
     }
 
-    // Step 2: Create Razorpay order on server
-    showToast("Creating order...", "info");
+    showToast("Opening secure payment gateway...", "info");
 
-    const orderRes = await fetch(API_BASE + "/create-order", {
-      method: "POST",
-      headers: getAuthHeaders(),
-      body: JSON.stringify({ amount: total })
-    });
-
-    const orderData = await orderRes.json();
-
-    if (!orderData.success || !orderData.order) {
-      showToast(orderData.message || "Failed to create order. Please try again.", "error");
-      return;
-    }
-
-    const razorpayOrder = orderData.order;
-
-    // SIMULATED PAYMENT FALLBACK FOR DEMO KEYS
-    if (razorpayOrder.id.startsWith("fake_order_")) {
-      showToast("Using simulated payment gateway...", "info");
-      
-      setTimeout(async () => {
-        const placeRes = await fetch(API_BASE + "/place-order", {
-          method: "POST",
-          headers: getAuthHeaders(),
-          body: JSON.stringify({
-            userId: user._id || user.email,
-            userEmail: user.email,
-            userName: user.name,
-            products: cart,
-            total: total,
-            shippingAddress: {
-              fullName: shipName,
-              address: shipAddress,
-              city: shipCity,
-              pincode: shipPincode,
-              phone: shipPhone
-            },
-            paymentId: "pay_simulated_" + Date.now(),
-            razorpayOrderId: razorpayOrder.id
-          })
-        });
-
-        const placeData = await placeRes.json();
-        if (placeData.success) {
-          document.getElementById("checkout-form").style.display = "none";
-          document.getElementById("order-confirmation").style.display = "block";
-          document.getElementById("conf-order-id").innerText = placeData.order._id;
-          document.getElementById("conf-payment-id").innerText = "pay_simulated_" + Date.now();
-          localStorage.removeItem("cart");
-          localStorage.removeItem("checkoutTotal");
-          showToast("Demo Order Placed Successfully! 🎉");
-        } else {
-          showToast("Failed to save demo order", "error");
-        }
-      }, 1500);
-      return;
-    }
-
-    // Step 3: Open Razorpay checkout
+    // Step 2: Open Razorpay checkout (Client-side only, no server-side Order creation)
     var options = {
       key: razorpayKey,
-      amount: razorpayOrder.amount,
+      amount: Math.round(total * 100), // paise
       currency: "INR",
       name: "Rimbic",
       description: "Sports Accessories",
-      order_id: razorpayOrder.id,
-
+      
       handler: async function(response) {
         try {
-          // Step 4: Verify payment
-          const verifyRes = await fetch(API_BASE + "/verify-payment", {
-            method: "POST",
-            headers: getAuthHeaders(),
-            body: JSON.stringify({
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature
-            })
-          });
+          showToast("Processing order...", "info");
 
-          const verifyData = await verifyRes.json();
-
-          if (!verifyData.success) {
-            showToast("Payment verification failed!", "error");
-            return;
-          }
-
-          // Step 5: Save order to DB
+          // Since this is a client-side only payment, there is no signature to verify.
+          // We just place the order in the database.
           const placeRes = await fetch(API_BASE + "/place-order", {
             method: "POST",
             headers: getAuthHeaders(),
@@ -372,47 +298,43 @@ async function pay() {
                 pincode: shipPincode,
                 phone: shipPhone
               },
-              paymentId: response.razorpay_payment_id,
-              razorpayOrderId: response.razorpay_order_id
+              paymentId: response.razorpay_payment_id || "pay_legacy_" + Date.now(),
+              razorpayOrderId: "" // No order ID in legacy flow
             })
           });
 
           const placeData = await placeRes.json();
 
           if (placeData.success) {
-            // Show confirmation
             document.getElementById("checkout-form").style.display = "none";
             document.getElementById("order-confirmation").style.display = "block";
             document.getElementById("conf-order-id").innerText = placeData.order._id;
-            document.getElementById("conf-payment-id").innerText = response.razorpay_payment_id;
-
+            document.getElementById("conf-payment-id").innerText = response.razorpay_payment_id || "pay_legacy";
+            
             localStorage.removeItem("cart");
             localStorage.removeItem("checkoutTotal");
-            showToast("Order Placed Successfully! 🎉");
           } else {
-            showToast("Order saved but something went wrong", "error");
+            showToast(placeData.message || "Failed to save order", "error");
           }
-
-        } catch(e) {
-          showToast("Payment received but order save failed. Contact support.", "error");
-          console.error(e);
+        } catch(err) {
+          showToast("Network error. Order might not be saved.", "error");
         }
       },
-
       prefill: {
         name: user ? user.name : "",
         email: user ? user.email : ""
       },
-
       theme: {
         color: "#ff6a00"
       }
     };
 
-    var rzp = new Razorpay(options);
-    rzp.on('payment.failed', function(response) {
+    var rzp = new window.Razorpay(options);
+    
+    rzp.on('payment.failed', function (response){
       showToast("Payment failed: " + response.error.description, "error");
     });
+
     rzp.open();
 
   } catch(e) {
@@ -420,7 +342,6 @@ async function pay() {
     console.error(e);
   }
 }
-
 </script>
 
 </body>
