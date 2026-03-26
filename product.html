@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Product Details - Rimbic Sports</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<!-- NAVBAR -->
+<header class="navbar" id="main-navbar">
+
+  <div class="nav-left">
+    <div class="menu-icon" onclick="toggleMenu()">☰</div>
+    <a href="index.html" class="logo">
+      <img src="images/logo.png" alt="Rimbic Logo">
+    </a>
+  </div>
+
+  <nav class="nav-menu" id="nav-menu">
+    <a href="index.html">Home</a>
+    <a href="shop.html">Shop</a>
+
+    <div class="dropdown">
+      <button class="dropbtn">Categories ▾</button>
+      <div class="dropdown-content">
+        <a href="shop.html?category=cricket">🏏 Cricket</a>
+        <a href="shop.html?category=football">⚽ Football</a>
+        <a href="shop.html?category=basketball">🏀 Basketball</a>
+        <a href="shop.html?category=badminton">🏸 Badminton</a>
+      </div>
+    </div>
+
+    <div class="dropdown">
+      <button class="dropbtn">Offers ▾</button>
+      <div class="dropdown-content">
+        <a href="shop.html?offer=deals">🔥 Today's Deals</a>
+        <a href="shop.html?offer=clearance">💥 Clearance Sale</a>
+        <a href="shop.html?offer=festival">🎉 Festival Offers</a>
+      </div>
+    </div>
+
+    <a href="contact.html">Contact</a>
+  </nav>
+
+  <div class="nav-right">
+    <a href="cart.html" class="cart">
+      🛒 Cart (<span id="cart-count">0</span>)
+    </a>
+
+    <div class="dropdown">
+      <button class="dropbtn">Account ▾</button>
+      <div class="dropdown-content">
+        <a href="login.html">Login</a>
+        <a href="signup.html">Signup</a>
+      </div>
+    </div>
+
+    <div class="phone">
+      <a href="tel:+919876543210">📞 +91 9876543210</a>
+    </div>
+  </div>
+
+</header>
+
+<!-- BREADCRUMB -->
+<div class="breadcrumb">
+  <a href="index.html">Home</a>
+  <span>›</span>
+  <a href="shop.html">Shop</a>
+  <span>›</span>
+  <span id="breadcrumb-name">Product</span>
+</div>
+
+<!-- PRODUCT DETAILS -->
+<section class="product-page">
+
+  <div class="product-details">
+
+    <img id="product-image" alt="Product Image">
+
+    <div class="product-info">
+      <h1 id="product-name"></h1>
+      <h2 id="product-price"></h2>
+
+      <p>
+        High quality sports equipment designed for performance and durability.
+        Perfect for athletes and sports enthusiasts at every level.
+      </p>
+
+      <div class="product-features">
+        <div class="product-feature">🚚 Free Shipping</div>
+        <div class="product-feature">🔄 30-Day Returns</div>
+        <div class="product-feature">✅ Genuine Product</div>
+        <div class="product-feature">🛡️ 1 Year Warranty</div>
+      </div>
+
+      <br>
+      <button id="add-cart-btn">Add to Cart →</button>
+
+      &nbsp;&nbsp;
+
+      <a href="cart.html">
+        <button style="background:var(--bg-dark);">Go to Cart →</button>
+      </a>
+    </div>
+
+  </div>
+
+</section>
+
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-container">
+    <div class="footer-col">
+      <h3>Newsletter</h3>
+      <p>Get updates about new sports accessories and offers.</p>
+      <input type="email" id="newsletterEmail" placeholder="Enter your email">
+      <button onclick="subscribeNewsletter()">Subscribe →</button>
+    </div>
+    <div class="footer-col">
+      <h3>Customer Service</h3>
+      <ul>
+        <li><a href="contact.html">Contact Us</a></li>
+        <li><a href="#">Returns</a></li>
+        <li><a href="#">Order History</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h3>Information</h3>
+      <ul>
+        <li><a href="#">About Us</a></li>
+        <li><a href="#">Delivery Info</a></li>
+        <li><a href="#">Privacy Policy</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h3>Extras</h3>
+      <ul>
+        <li><a href="#">Brands</a></li>
+        <li><a href="#">Gift Vouchers</a></li>
+        <li><a href="#">Track Order</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>© 2026 Rimbic — Premium Sports Accessories</p>
+  </div>
+</footer>
+
+<button class="back-to-top" id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+<div class="toast-container" id="toast-container"></div>
+
+<script src="main.js"></script>
+
+<script>
+
+let product = JSON.parse(localStorage.getItem("selectedProduct"));
+
+if(product) {
+  document.getElementById("product-name").innerText = product.name;
+  document.getElementById("product-price").innerText = "₹" + product.price;
+  document.getElementById("product-image").src = product.image;
+  document.getElementById("product-image").alt = product.name;
+  document.getElementById("breadcrumb-name").innerText = product.name;
+
+  document.getElementById("add-cart-btn").onclick = function(){
+    addToCart(product.name, product.price, product.image);
+  };
+}
+
+</script>
+
+</body>
+</html>

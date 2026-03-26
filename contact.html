@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contact - Rimbic Sports</title>
+<meta name="description" content="Get in touch with Rimbic Sports. We'd love to hear from you.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<!-- NAVBAR -->
+<header class="navbar" id="main-navbar">
+
+  <div class="nav-left">
+    <div class="menu-icon" onclick="toggleMenu()">☰</div>
+    <a href="index.html" class="logo">
+      <img src="images/logo.png" alt="Rimbic Logo">
+    </a>
+  </div>
+
+  <nav class="nav-menu" id="nav-menu">
+    <a href="index.html">Home</a>
+    <a href="shop.html">Shop</a>
+
+    <div class="dropdown">
+      <button class="dropbtn">Categories ▾</button>
+      <div class="dropdown-content">
+        <a href="shop.html?category=cricket">🏏 Cricket</a>
+        <a href="shop.html?category=football">⚽ Football</a>
+        <a href="shop.html?category=basketball">🏀 Basketball</a>
+        <a href="shop.html?category=badminton">🏸 Badminton</a>
+      </div>
+    </div>
+
+    <div class="dropdown">
+      <button class="dropbtn">Offers ▾</button>
+      <div class="dropdown-content">
+        <a href="shop.html?offer=deals">🔥 Today's Deals</a>
+        <a href="shop.html?offer=clearance">💥 Clearance Sale</a>
+        <a href="shop.html?offer=festival">🎉 Festival Offers</a>
+      </div>
+    </div>
+
+    <a href="contact.html">Contact</a>
+  </nav>
+
+  <div class="nav-right">
+    <a href="cart.html" class="cart">
+      🛒 Cart (<span id="cart-count">0</span>)
+    </a>
+
+    <div class="dropdown">
+      <button class="dropbtn">Account ▾</button>
+      <div class="dropdown-content">
+        <a href="login.html">Login</a>
+        <a href="signup.html">Signup</a>
+      </div>
+    </div>
+
+    <div class="phone">
+      <a href="tel:+919876543210">📞 +91 9876543210</a>
+    </div>
+  </div>
+
+</header>
+
+
+<!-- CONTACT INFO CARDS -->
+<div class="contact-section">
+
+  <div class="contact-info-grid reveal">
+
+    <div class="contact-info-card">
+      <span class="info-icon">📞</span>
+      <h3>Phone</h3>
+      <p>+91 9876543210</p>
+    </div>
+
+    <div class="contact-info-card">
+      <span class="info-icon">✉️</span>
+      <h3>Email</h3>
+      <p>support@rimbic.com</p>
+    </div>
+
+    <div class="contact-info-card">
+      <span class="info-icon">📍</span>
+      <h3>Location</h3>
+      <p>Mumbai, India</p>
+    </div>
+
+  </div>
+
+  <!-- CONTACT FORM -->
+  <div class="contact-container reveal">
+    <h1>Get In Touch</h1>
+    <p class="form-subtitle">We'd love to hear from you. Send us a message!</p>
+    <input id="contact-name" placeholder="Your Name">
+    <input id="contact-email" placeholder="Your Email" type="email">
+    <textarea id="contact-message" rows="5" placeholder="Your Message"></textarea>
+    <button onclick="sendMessage()">Send Message →</button>
+  </div>
+
+</div>
+
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-container">
+
+    <div class="footer-col">
+      <h3>Newsletter</h3>
+      <p>Get updates about new sports accessories and offers.</p>
+      <input type="email" id="newsletterEmail" placeholder="Enter your email">
+      <button onclick="subscribeNewsletter()">Subscribe →</button>
+    </div>
+
+    <div class="footer-col">
+      <h3>Customer Service</h3>
+      <ul>
+        <li><a href="contact.html">Contact Us</a></li>
+        <li><a href="#" onclick="showToast('Return policy coming soon','info')">Returns</a></li>
+        <li><a href="orders.html">Order History</a></li>
+        <li><a href="#" onclick="showToast('Site map coming soon','info')">Site Map</a></li>
+      </ul>
+    </div>
+
+    <div class="footer-col">
+      <h3>Information</h3>
+      <ul>
+        <li><a href="#" onclick="showToast('About Rimbic — #1 Sports Store','info')">About Us</a></li>
+        <li><a href="#" onclick="showToast('Delivery info coming soon','info')">Delivery Information</a></li>
+        <li><a href="#" onclick="showToast('Privacy policy coming soon','info')">Privacy Policy</a></li>
+        <li><a href="#" onclick="showToast('Terms coming soon','info')">Terms & Conditions</a></li>
+      </ul>
+    </div>
+
+    <div class="footer-col">
+      <h3>Extras</h3>
+      <ul>
+        <li><a href="#" onclick="showToast('Brand list coming soon','info')">Brands</a></li>
+        <li><a href="#" onclick="showToast('Gift vouchers coming soon','info')">Gift Vouchers</a></li>
+        <li><a href="#" onclick="showToast('Affiliate program coming soon','info')">Affiliates</a></li>
+        <li><a href="#" onclick="showToast('Order tracking coming soon','info')">Track Order</a></li>
+      </ul>
+    </div>
+
+  </div>
+  <div class="footer-bottom">
+    <p>© 2026 Rimbic — Premium Sports Accessories</p>
+  </div>
+</footer>
+
+<button class="back-to-top" id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+<div class="toast-container" id="toast-container"></div>
+
+<script src="main.js"></script>
+
+<script>
+const API_BASE = window.location.origin || "http://localhost:3000";
+
+async function sendMessage(){
+  const name = document.getElementById("contact-name").value.trim();
+  const email = document.getElementById("contact-email").value.trim();
+  const message = document.getElementById("contact-message").value.trim();
+
+  if(!name || !email || !message){
+    showToast("Please fill all fields", "error");
+    return;
+  }
+
+  try {
+    const res = await fetch(API_BASE + "/contact", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, email, message })
+    });
+
+    const data = await res.json();
+
+    if(data.success){
+      showToast("Message Sent! We'll contact you soon. 📨");
+      document.getElementById("contact-name").value = "";
+      document.getElementById("contact-email").value = "";
+      document.getElementById("contact-message").value = "";
+    } else {
+      showToast(data.message || "Failed to send message", "error");
+    }
+  } catch(e) {
+    showToast("Could not send message. Please try later.", "error");
+  }
+}
+</script>
+
+</body>
+</html>

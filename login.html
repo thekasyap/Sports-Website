@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login - Rimbic Sports</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<div class="auth-wrapper">
+
+  <!-- BRAND PANEL -->
+  <div class="auth-brand">
+    <div class="brand-logo">🏆 Rimbic</div>
+    <div class="brand-tagline">Your #1 destination for premium sports accessories and equipment</div>
+  </div>
+
+  <!-- FORM PANEL -->
+  <div class="auth-form-side">
+    <div class="auth-box">
+      <h2>Welcome Back</h2>
+      <p class="auth-subtitle">Sign in to your Rimbic account</p>
+
+      <input id="email" placeholder="Email address" type="email">
+      <input id="password" type="password" placeholder="Password">
+
+      <button onclick="login()">Sign In →</button>
+
+      <a href="signup.html">Don't have an account? <strong>Create one</strong></a>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+
+const API_BASE = window.location.origin || "http://localhost:3000";
+
+// Toast function (standalone for auth pages)
+function showToast(message, type = 'success') {
+  let container = document.getElementById('toast-container');
+  const toast = document.createElement('div');
+  const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
+  toast.className = `toast toast-${type}`;
+  toast.innerHTML = `<span>${icon}</span> ${message}`;
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.classList.add('toast-hide');
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
+async function login(){
+  let email = document.getElementById("email").value.trim();
+  let password = document.getElementById("password").value;
+
+  if(!email || !password){
+    showToast("Please enter email and password", "error");
+    return;
+  }
+
+  try {
+    let res = await fetch(API_BASE + "/login",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({email, password})
+    });
+
+    let data = await res.json();
+
+    if(data.success){
+      // Store JWT token and user data
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+      showToast("Login successful! Redirecting...");
+      setTimeout(() => { window.location = "shop.html"; }, 1000);
+    } else {
+      showToast(data.message || "Invalid email or password", "error");
+    }
+  } catch(e) {
+    showToast("Server not reachable. Please try later.", "error");
+  }
+}
+
+// Allow Enter key to submit
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') login();
+});
+
+</script>
+
+</body>
+</html>

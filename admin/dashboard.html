@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Dashboard - Rimbic</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../style.css">
+
+<style>
+
+body {
+  font-family: 'Inter', Arial, sans-serif;
+  background: #f5f5f5;
+}
+
+h1 {
+  text-align: center;
+  margin-top: 40px;
+  font-family: 'Outfit', sans-serif;
+}
+
+.admin-toolbar {
+  background: #1a1a2e;
+  color: white;
+  padding: 15px 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.admin-toolbar h2 { margin: 0; font-size: 18px; }
+
+.admin-toolbar a {
+  color: white;
+  margin-left: 20px;
+  text-decoration: none;
+  font-size: 14px;
+  opacity: 0.8;
+  transition: opacity 0.3s;
+}
+
+.admin-toolbar a:hover { opacity: 1; }
+
+.stats-row {
+  display: flex;
+  gap: 20px;
+  padding: 30px;
+  max-width: 900px;
+  margin: auto;
+  flex-wrap: wrap;
+}
+
+.stat-card {
+  flex: 1;
+  min-width: 150px;
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+}
+
+.stat-card .stat-num { font-size: 32px; font-weight: 700; color: #1a1a2e; }
+.stat-card .stat-label { color: #6b7280; font-size: 13px; margin-top: 4px; }
+
+.add-btn {
+  display: block;
+  width: max-content;
+  margin: 10px auto 20px;
+  padding: 12px 24px;
+  background: #ff6a00;
+  color: white;
+  border: none;
+  cursor: pointer;
+  border-radius: 30px;
+  font-weight: 600;
+  font-size: 14px;
+  text-decoration: none;
+  transition: background 0.3s;
+}
+
+.add-btn:hover { background: #1a1a2e; }
+
+.admin-products {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  padding: 20px 50px 50px;
+  max-width: 1200px;
+  margin: auto;
+}
+
+.admin-product {
+  background: white;
+  padding: 16px;
+  border-radius: 10px;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+}
+
+.admin-product img {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.admin-product h3 { margin: 10px 0 4px; font-size: 15px; }
+.admin-product p { color: #6b7280; font-size: 13px; margin: 2px 0; }
+
+.admin-product .btn-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.admin-product .btn-row button {
+  flex: 1;
+  padding: 8px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.btn-edit { background: #3b82f6; color: white; }
+.btn-edit:hover { background: #2563eb; }
+.btn-delete { background: #ef4444; color: white; }
+.btn-delete:hover { background: #dc2626; }
+
+</style>
+
+</head>
+
+<body>
+
+<div class="admin-toolbar">
+  <h2>🏆 Rimbic Admin</h2>
+  <div>
+    <a href="add-product.html">➕ Add Product</a>
+    <a href="../orders.html">📦 Orders</a>
+    <a href="../admin.html">🛠️ Full Admin</a>
+    <a href="../index.html">🏠 View Store</a>
+  </div>
+</div>
+
+<h1>Admin Dashboard</h1>
+
+<div class="stats-row">
+  <div class="stat-card">
+    <div class="stat-num" id="stat-products">0</div>
+    <div class="stat-label">Products</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-num" id="stat-orders">0</div>
+    <div class="stat-label">Orders</div>
+  </div>
+</div>
+
+<a href="add-product.html" class="add-btn">➕ Add New Product</a>
+
+<div class="admin-products" id="admin-products"></div>
+
+<script>
+const API_BASE = window.location.origin || "http://localhost:3000";
+
+async function loadProducts() {
+  try {
+    let res = await fetch(API_BASE + "/products");
+    let products = await res.json();
+
+    let container = document.getElementById("admin-products");
+    container.innerHTML = "";
+
+    document.getElementById("stat-products").innerText = products.length;
+
+    products.forEach(p => {
+      container.innerHTML += `
+        <div class="admin-product">
+          <img src="${p.image}" alt="${p.name}">
+          <h3>${p.name}</h3>
+          <p><strong>₹${p.price}</strong></p>
+          <p>${p.category || 'General'}</p>
+          <div class="btn-row">
+            <button class="btn-edit" onclick="editProduct('${p._id}')">Edit</button>
+            <button class="btn-delete" onclick="deleteProduct('${p._id}')">Delete</button>
+          </div>
+        </div>
+      `;
+    });
+  } catch(e) {
+    document.getElementById("admin-products").innerHTML = '<p style="grid-column:1/-1;text-align:center;color:#ef4444;">Server not reachable</p>';
+  }
+}
+
+async function loadStats() {
+  try {
+    let res = await fetch(API_BASE + "/orders");
+    let orders = await res.json();
+    document.getElementById("stat-orders").innerText = orders.length;
+  } catch(e) {}
+}
+
+async function deleteProduct(id) {
+  if (!confirm("Delete this product?")) return;
+  try {
+    await fetch(API_BASE + "/delete-product/" + id, { method: "DELETE" });
+    loadProducts();
+  } catch(e) {
+    alert("Failed to delete");
+  }
+}
+
+function editProduct(id) {
+  localStorage.setItem("editProductId", id);
+  window.location.href = "edit-product.html";
+}
+
+loadProducts();
+loadStats();
+</script>
+
+</body>
+</html>

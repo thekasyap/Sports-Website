@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shop - Rimbic Sports</title>
+<meta name="description" content="Browse and shop premium sports accessories at Rimbic. Cricket, Football, Basketball and Badminton equipment.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<!-- NAVBAR -->
+<header class="navbar" id="main-navbar">
+
+  <div class="nav-left">
+    <div class="menu-icon" onclick="toggleMenu()">☰</div>
+    <a href="index.html" class="logo">
+      <img src="images/logo.png" alt="Rimbic Logo">
+    </a>
+  </div>
+
+  <nav class="nav-menu" id="nav-menu">
+    <a href="index.html">Home</a>
+    <a href="shop.html">Shop</a>
+
+    <div class="dropdown">
+      <button class="dropbtn">Categories ▾</button>
+      <div class="dropdown-content">
+        <a href="shop.html?category=cricket">🏏 Cricket</a>
+        <a href="shop.html?category=football">⚽ Football</a>
+        <a href="shop.html?category=basketball">🏀 Basketball</a>
+        <a href="shop.html?category=badminton">🏸 Badminton</a>
+      </div>
+    </div>
+
+    <div class="dropdown">
+      <button class="dropbtn">Offers ▾</button>
+      <div class="dropdown-content">
+        <a href="shop.html?offer=deals">🔥 Today's Deals</a>
+        <a href="shop.html?offer=clearance">💥 Clearance Sale</a>
+        <a href="shop.html?offer=festival">🎉 Festival Offers</a>
+      </div>
+    </div>
+
+    <a href="contact.html">Contact</a>
+  </nav>
+
+  <div class="nav-right">
+    <a href="cart.html" class="cart">
+      🛒 Cart (<span id="cart-count">0</span>)
+    </a>
+
+    <div class="dropdown">
+      <button class="dropbtn">Account ▾</button>
+      <div class="dropdown-content">
+        <a href="login.html">Login</a>
+        <a href="signup.html">Signup</a>
+      </div>
+    </div>
+
+    <div class="phone">
+      <a href="tel:+919876543210">📞 +91 9876543210</a>
+    </div>
+  </div>
+
+</header>
+
+
+<!-- PAGE TITLE -->
+<section class="page-title">
+  <h1>Sports Accessories Store</h1>
+  <p>Find the best equipment for every sport</p>
+  <input type="text" id="search" placeholder="🔍 Search products..." onkeyup="searchProducts()" class="search-bar">
+</section>
+
+
+<!-- SHOP LAYOUT -->
+<section class="shop-layout">
+
+  <div class="sidebar reveal-left">
+    <h3>Categories</h3>
+    <ul>
+      <li class="active" onclick="filterProducts('all', this)">All Products</li>
+      <li onclick="filterProducts('Cricket', this)">🏏 Cricket</li>
+      <li onclick="filterProducts('Football', this)">⚽ Football</li>
+      <li onclick="filterProducts('Basketball', this)">🏀 Basketball</li>
+      <li onclick="filterProducts('Badminton', this)">🏸 Badminton</li>
+    </ul>
+  </div>
+
+  <div class="products">
+    <div class="product-grid" id="product-list"></div>
+  </div>
+
+</section>
+
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-container">
+
+    <div class="footer-col">
+      <h3>Newsletter</h3>
+      <p>Get updates about new sports accessories and offers.</p>
+      <input type="email" id="newsletterEmail" placeholder="Enter your email">
+      <button onclick="subscribeNewsletter()">Subscribe →</button>
+    </div>
+
+    <div class="footer-col">
+      <h3>Customer Service</h3>
+      <ul>
+        <li><a href="contact.html">Contact Us</a></li>
+        <li><a href="#" onclick="showToast('Return policy page coming soon','info')">Returns</a></li>
+        <li><a href="orders.html">Order History</a></li>
+        <li><a href="#" onclick="showToast('Site map page coming soon','info')">Site Map</a></li>
+      </ul>
+    </div>
+
+    <div class="footer-col">
+      <h3>Information</h3>
+      <ul>
+        <li><a href="#" onclick="showToast('About Rimbic — Your #1 Sports Store','info')">About Us</a></li>
+        <li><a href="#" onclick="showToast('Delivery info coming soon','info')">Delivery Information</a></li>
+        <li><a href="#" onclick="showToast('Privacy policy coming soon','info')">Privacy Policy</a></li>
+        <li><a href="#" onclick="showToast('Terms &amp; Conditions coming soon','info')">Terms &amp; Conditions</a></li>
+      </ul>
+    </div>
+
+    <div class="footer-col">
+      <h3>Extras</h3>
+      <ul>
+        <li><a href="#" onclick="showToast('Brand list coming soon','info')">Brands</a></li>
+        <li><a href="#" onclick="showToast('Gift vouchers coming soon','info')">Gift Vouchers</a></li>
+        <li><a href="#" onclick="showToast('Affiliate program coming soon','info')">Affiliates</a></li>
+        <li><a href="#" onclick="showToast('Order tracking coming soon','info')">Track Order</a></li>
+      </ul>
+    </div>
+
+  </div>
+
+  <div class="footer-bottom">
+    <p>© 2026 Rimbic — Premium Sports Accessories</p>
+  </div>
+</footer>
+
+<!-- BACK TO TOP -->
+<button class="back-to-top" id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+<div class="toast-container" id="toast-container"></div>
+
+<script src="main.js"></script>
+
+<script>
+
+const API_BASE = window.location.origin || "http://localhost:3000";
+
+/* LOAD PRODUCTS */
+async function loadShopProducts(){
+  try {
+    let res = await fetch(API_BASE + "/products");
+    let products = await res.json();
+
+    let container = document.getElementById("product-list");
+    container.innerHTML = "";
+
+    products.forEach((p, i) => {
+      const safeName = p.name.replace(/'/g, "\\'");
+      const safeImage = p.image.replace(/'/g, "\\'");
+      container.innerHTML += `
+        <div class="product reveal" style="transition-delay:${i * 0.05}s" data-category="${p.category || 'General'}">
+          <img src="${p.image}" alt="${p.name}" onclick="viewProduct('${safeName}',${p.price},'${safeImage}')">
+          <h3 onclick="viewProduct('${safeName}',${p.price},'${safeImage}')">${p.name}</h3>
+          <p>₹${p.price}</p>
+          <div class="qty-box">
+            <button onclick="decreaseQty('${safeName}')">−</button>
+            <span id="qty-${p.name.replace(/\s/g,'')}">0</span>
+            <button onclick="increaseQty('${safeName}',${p.price},'${safeImage}')">+</button>
+          </div>
+        </div>
+      `;
+    });
+
+    initScrollReveal();
+    updateQtyDisplay();
+
+    // Apply URL category filter if present
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlCategory = urlParams.get('category');
+    if (urlCategory) {
+      filterProducts(urlCategory.charAt(0).toUpperCase() + urlCategory.slice(1));
+      document.querySelectorAll('.sidebar ul li').forEach(li => {
+        li.classList.remove('active');
+        if (li.textContent.toLowerCase().includes(urlCategory.toLowerCase())) {
+          li.classList.add('active');
+        }
+      });
+    }
+
+  } catch(e) {
+    document.getElementById("product-list").innerHTML = `
+      <div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:#6b7280;">
+        <div style="font-size:48px;margin-bottom:16px;">🏪</div>
+        <h3 style="font-size:20px;color:#1a1a2e;margin-bottom:8px;">Store Loading...</h3>
+        <p>Please make sure the server is running on localhost:3000</p>
+      </div>
+    `;
+  }
+}
+
+loadShopProducts();
+
+
+/* PRODUCT PAGE */
+function viewProduct(name, price, image){
+  let product = { name, price, image };
+  localStorage.setItem("selectedProduct", JSON.stringify(product));
+  window.location.href = "product.html";
+}
+
+
+/* SEARCH */
+function searchProducts(){
+  let input = document.getElementById("search").value.toLowerCase();
+  let productCards = document.querySelectorAll(".product");
+  productCards.forEach(card => {
+    let name = card.querySelector("h3").innerText.toLowerCase();
+    card.style.display = name.includes(input) ? "block" : "none";
+  });
+}
+
+
+/* CATEGORY FILTER */
+function filterProducts(category, el){
+  // Update active state
+  document.querySelectorAll('.sidebar ul li').forEach(li => li.classList.remove('active'));
+  if (el) el.classList.add('active');
+
+  let products = document.querySelectorAll(".product");
+  products.forEach(product => {
+    let name = product.querySelector("h3").innerText;
+    if(category === "all"){
+      product.style.display = "block";
+    } else if(name.toLowerCase().includes(category.toLowerCase())){
+      product.style.display = "block";
+    } else {
+      product.style.display = "none";
+    }
+  });
+}
+
+</script>
+
+</body>
+</html>

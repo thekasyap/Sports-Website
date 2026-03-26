@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Add Product - Rimbic Admin</title>
+
+<style>
+body {
+  font-family: 'Inter', Arial, sans-serif;
+  background: #f5f5f5;
+}
+
+.container {
+  max-width: 500px;
+  margin: 80px auto;
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.container h1 { margin-bottom: 20px; }
+
+input, select {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 15px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+button {
+  padding: 12px 24px;
+  background: #ff6a00;
+  color: white;
+  border: none;
+  cursor: pointer;
+  border-radius: 30px;
+  font-weight: 600;
+  font-size: 15px;
+}
+
+button:hover { background: #1a1a2e; }
+
+.back-link {
+  display: block;
+  text-align: center;
+  margin-top: 16px;
+  color: #6b7280;
+  text-decoration: none;
+}
+
+.back-link:hover { color: #ff6a00; }
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+  <h1>➕ Add New Product</h1>
+
+  <input id="name" placeholder="Product Name">
+  <input id="price" placeholder="Price (₹)" type="number">
+  <input id="image" placeholder="Image URL">
+  <select id="category">
+    <option value="General">Select Category</option>
+    <option value="Cricket">🏏 Cricket</option>
+    <option value="Football">⚽ Football</option>
+    <option value="Basketball">🏀 Basketball</option>
+    <option value="Badminton">🏸 Badminton</option>
+    <option value="Gym">💪 Gym Equipment</option>
+  </select>
+  <input id="description" placeholder="Description (optional)">
+
+  <button onclick="addNewProduct()">Add Product →</button>
+
+  <a href="dashboard.html" class="back-link">← Back to Dashboard</a>
+
+</div>
+
+<script>
+const API_BASE = window.location.origin || "http://localhost:3000";
+
+async function addNewProduct() {
+  let name = document.getElementById("name").value.trim();
+  let price = document.getElementById("price").value;
+  let image = document.getElementById("image").value.trim();
+  let category = document.getElementById("category").value;
+  let description = document.getElementById("description").value.trim();
+
+  if (!name || !price || !image) {
+    alert("Please fill Name, Price, and Image URL");
+    return;
+  }
+
+  try {
+    const res = await fetch(API_BASE + "/add-product", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, price: Number(price), image, category, description })
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      alert("Product Added!");
+      window.location.href = "dashboard.html";
+    } else {
+      alert(data.message || "Failed to add product");
+    }
+  } catch(e) {
+    alert("Server not reachable");
+  }
+}
+</script>
+
+</body>
+</html>

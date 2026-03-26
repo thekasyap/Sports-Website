@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Signup - Rimbic Sports</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<div class="auth-wrapper">
+
+  <!-- BRAND PANEL -->
+  <div class="auth-brand">
+    <div class="brand-logo">🏆 Rimbic</div>
+    <div class="brand-tagline">Join thousands of sports enthusiasts. Get access to exclusive deals and premium equipment.</div>
+  </div>
+
+  <!-- FORM PANEL -->
+  <div class="auth-form-side">
+    <div class="auth-box">
+      <h2>Create Account</h2>
+      <p class="auth-subtitle">Join Rimbic and start shopping today</p>
+
+      <input id="name" placeholder="Full Name">
+      <input id="email" placeholder="Email address" type="email">
+      <input id="password" type="password" placeholder="Create Password (min 6 characters)">
+
+      <button onclick="signup()">Create Account →</button>
+
+      <a href="login.html">Already have an account? <strong>Sign in</strong></a>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+
+const API_BASE = window.location.origin || "http://localhost:3000";
+
+// Toast function (standalone for auth pages)
+function showToast(message, type = 'success') {
+  let container = document.getElementById('toast-container');
+  const toast = document.createElement('div');
+  const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
+  toast.className = `toast toast-${type}`;
+  toast.innerHTML = `<span>${icon}</span> ${message}`;
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.classList.add('toast-hide');
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
+async function signup(){
+  let name = document.getElementById("name").value.trim();
+  let email = document.getElementById("email").value.trim();
+  let password = document.getElementById("password").value;
+
+  if(!name || !email || !password){
+    showToast("Please fill all fields", "error");
+    return;
+  }
+
+  if(password.length < 6){
+    showToast("Password must be at least 6 characters", "error");
+    return;
+  }
+
+  try {
+    let res = await fetch(API_BASE + "/signup",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({name, email, password})
+    });
+
+    let data = await res.json();
+
+    if(data.success){
+      showToast("Account Created! Redirecting to login...");
+      setTimeout(() => { window.location = "login.html"; }, 1500);
+    } else {
+      showToast(data.message || "Signup failed. Please try again.", "error");
+    }
+  } catch(e) {
+    showToast("Server not reachable. Please try later.", "error");
+  }
+}
+
+// Allow Enter key to submit
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') signup();
+});
+
+</script>
+
+</body>
+</html>

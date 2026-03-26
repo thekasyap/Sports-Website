@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rimbic Store — Premium Sports Accessories</title>
+<meta name="description" content="Shop the best sports accessories at Rimbic. Cricket, Football, Basketball, Badminton equipment and more.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<!-- NAVBAR -->
+<header class="navbar" id="main-navbar">
+
+  <div class="nav-left">
+    <div class="menu-icon" onclick="toggleMenu()">☰</div>
+
+    <a href="index.html" class="logo">
+      <img src="images/logo.png" alt="Rimbic Logo">
+    </a>
+  </div>
+
+  <nav class="nav-menu" id="nav-menu">
+    <a href="index.html">Home</a>
+    <a href="shop.html">Shop</a>
+
+    <div class="dropdown">
+      <button class="dropbtn">Categories ▾</button>
+      <div class="dropdown-content">
+        <a href="shop.html?category=cricket">🏏 Cricket</a>
+        <a href="shop.html?category=football">⚽ Football</a>
+        <a href="shop.html?category=basketball">🏀 Basketball</a>
+        <a href="shop.html?category=badminton">🏸 Badminton</a>
+      </div>
+    </div>
+
+    <div class="dropdown">
+      <button class="dropbtn">Offers ▾</button>
+      <div class="dropdown-content">
+        <a href="shop.html?offer=deals">🔥 Today's Deals</a>
+        <a href="shop.html?offer=festival">🎉 Festival Offers</a>
+      </div>
+    </div>
+
+    <a href="contact.html">Contact</a>
+  </nav>
+
+  <div class="nav-right">
+    <a href="cart.html" class="cart">
+      🛒 Cart (<span id="cart-count">0</span>)
+    </a>
+
+    <div class="dropdown">
+      <button class="dropbtn">Account ▾</button>
+      <div class="dropdown-content">
+        <a href="login.html">Login</a>
+        <a href="signup.html">Signup</a>
+      </div>
+    </div>
+
+    <div class="phone">
+      <a href="tel:+919876543210">📞 +91 9876543210</a>
+    </div>
+  </div>
+
+</header>
+
+
+<!-- HERO SECTION -->
+<section class="hero">
+  <div class="hero-text">
+    <div class="hero-badge">🏆 #1 Sports Store in India</div>
+    <h1>Best Sports<br><span>Accessories</span></h1>
+    <p>Everything you need to win the game — premium quality, unbeatable prices</p>
+    <a href="shop.html" class="shop-btn">Shop Now →</a>
+  </div>
+  <div class="scroll-indicator">
+    <span>Scroll</span>
+    <div class="arrow"></div>
+  </div>
+</section>
+
+
+<!-- SPORTS CATEGORIES -->
+<section class="categories">
+  <h2 class="reveal">Shop By Sport</h2>
+  <p class="section-subtitle reveal">Find equipment tailored for your favorite sport</p>
+
+  <div class="category-grid">
+
+    <a href="shop.html?category=cricket" class="category-card reveal">
+      <img src="https://images.pexels.com/photos/3628912/pexels-photo-3628912.jpeg?auto=compress&cs=tinysrgb&w=600" alt="Cricket Equipment">
+      <div class="card-overlay"><span>Explore →</span></div>
+      <h3>🏏 Cricket</h3>
+    </a>
+
+    <a href="shop.html?category=football" class="category-card reveal">
+      <img src="https://images.pexels.com/photos/274422/pexels-photo-274422.jpeg" alt="Football Equipment">
+      <div class="card-overlay"><span>Explore →</span></div>
+      <h3>⚽ Football</h3>
+    </a>
+
+    <a href="shop.html?category=basketball" class="category-card reveal">
+      <img src="https://images.pexels.com/photos/358042/pexels-photo-358042.jpeg" alt="Basketball Equipment">
+      <div class="card-overlay"><span>Explore →</span></div>
+      <h3>🏀 Basketball</h3>
+    </a>
+
+    <a href="shop.html?category=badminton" class="category-card reveal">
+      <img src="https://images.pexels.com/photos/2202685/pexels-photo-2202685.jpeg" alt="Badminton Equipment">
+      <div class="card-overlay"><span>Explore →</span></div>
+      <h3>🏸 Badminton</h3>
+    </a>
+
+  </div>
+</section>
+
+
+<!-- OFFER BANNER -->
+<section class="offer reveal">
+  <h2>🔥 Summer Sports Sale</h2>
+  <p>Up to 40% OFF on selected sports equipment</p>
+  <a href="shop.html">Shop Deals →</a>
+</section>
+
+
+<!-- WHY CHOOSE US -->
+<section class="features-section">
+  <h2 class="reveal">Why Choose Rimbic</h2>
+
+  <div class="features-grid">
+
+    <div class="feature-card reveal">
+      <span class="feature-icon">🚀</span>
+      <h3>Fast Delivery</h3>
+      <p>Get your gear delivered within 2-3 business days across India</p>
+    </div>
+
+    <div class="feature-card reveal">
+      <span class="feature-icon">🏅</span>
+      <h3>Premium Quality</h3>
+      <p>Only authentic, top-brand sports equipment and accessories</p>
+    </div>
+
+    <div class="feature-card reveal">
+      <span class="feature-icon">💰</span>
+      <h3>Best Prices</h3>
+      <p>Unbeatable prices with regular deals, offers and cashback</p>
+    </div>
+
+    <div class="feature-card reveal">
+      <span class="feature-icon">🔄</span>
+      <h3>Easy Returns</h3>
+      <p>30-day hassle-free return and exchange policy on all products</p>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-container">
+
+    <div class="footer-col">
+      <h3>Newsletter</h3>
+      <p>Get updates about new sports accessories and offers.</p>
+      <input type="email" id="newsletterEmail" placeholder="Enter your email">
+      <button onclick="subscribeNewsletter()">Subscribe →</button>
+    </div>
+
+    <div class="footer-col">
+      <h3>Customer Service</h3>
+      <ul>
+        <li><a href="contact.html">Contact Us</a></li>
+        <li><a href="#" onclick="showToast('Return policy page coming soon','info')">Returns</a></li>
+        <li><a href="#" onclick="showToast('Order history page coming soon','info')">Order History</a></li>
+        <li><a href="#" onclick="showToast('Site map page coming soon','info')">Site Map</a></li>
+      </ul>
+    </div>
+
+    <div class="footer-col">
+      <h3>Information</h3>
+      <ul>
+        <li><a href="#" onclick="showToast('About Rimbic — Your #1 Sports Store','info')">About Us</a></li>
+        <li><a href="#" onclick="showToast('Delivery info page coming soon','info')">Delivery Information</a></li>
+        <li><a href="#" onclick="showToast('Privacy policy page coming soon','info')">Privacy Policy</a></li>
+        <li><a href="#" onclick="showToast('Terms & Conditions page coming soon','info')">Terms & Conditions</a></li>
+      </ul>
+    </div>
+
+    <div class="footer-col">
+      <h3>Extras</h3>
+      <ul>
+        <li><a href="#" onclick="showToast('Brand list page coming soon','info')">Brands</a></li>
+        <li><a href="#" onclick="showToast('Gift vouchers page coming soon','info')">Gift Vouchers</a></li>
+        <li><a href="#" onclick="showToast('Affiliate program page coming soon','info')">Affiliates</a></li>
+        <li><a href="#" onclick="showToast('Enter your Order ID to track','info')">Track Order</a></li>
+      </ul>
+    </div>
+
+  </div>
+
+  <div class="footer-bottom">
+    <p>© 2026 Rimbic — Premium Sports Accessories</p>
+  </div>
+</footer>
+
+<!-- BACK TO TOP -->
+<button class="back-to-top" id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toast-container"></div>
+
+<script src="main.js"></script>
+
+</body>
+</html>

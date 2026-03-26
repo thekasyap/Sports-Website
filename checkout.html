@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Checkout - Rimbic Sports</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<div class="checkout-wrapper">
+
+  <!-- PROGRESS STEPS -->
+  <div class="checkout-steps">
+    <div class="checkout-step">
+      <span class="step-num">✓</span>
+      <span>Cart</span>
+    </div>
+    <div class="checkout-step-divider"></div>
+    <div class="checkout-step active">
+      <span class="step-num">2</span>
+      <span>Checkout</span>
+    </div>
+    <div class="checkout-step-divider"></div>
+    <div class="checkout-step">
+      <span class="step-num">3</span>
+      <span>Payment</span>
+    </div>
+  </div>
+
+  <!-- CHECKOUT BOX -->
+  <div class="checkout-box" id="checkout-form">
+
+    <h2>🛍️ Checkout</h2>
+    <p class="checkout-subtitle">Fill in your shipping details and proceed to payment</p>
+
+    <!-- ORDER SUMMARY -->
+    <div id="order-items" style="margin-bottom:20px;"></div>
+
+    <h3>Total Amount: <span>₹<span id="amount"></span></span></h3>
+
+    <!-- SHIPPING ADDRESS -->
+    <h3 style="margin-top:24px; margin-bottom:12px;">📦 Shipping Address</h3>
+    <input id="ship-name" placeholder="Full Name" style="margin-bottom:10px;">
+    <input id="ship-address" placeholder="Address (House No, Street, Area)" style="margin-bottom:10px;">
+    <input id="ship-city" placeholder="City" style="margin-bottom:10px;">
+    <input id="ship-pincode" placeholder="Pincode" style="margin-bottom:10px;">
+    <input id="ship-phone" placeholder="Phone Number" type="tel" style="margin-bottom:20px;">
+
+    <button onclick="pay()">Pay Now →</button>
+
+  </div>
+
+  <!-- ORDER CONFIRMATION (hidden initially) -->
+  <div class="checkout-box" id="order-confirmation" style="display:none;">
+    <h2>🎉 Order Confirmed!</h2>
+    <p class="checkout-subtitle">Thank you for shopping with Rimbic</p>
+    <p style="margin:20px 0;"><strong>Order ID:</strong> <span id="conf-order-id"></span></p>
+    <p><strong>Payment ID:</strong> <span id="conf-payment-id"></span></p>
+    <p style="margin-top:20px;"><strong>Status:</strong> Processing</p>
+    <a href="shop.html"><button style="margin-top:24px;">Continue Shopping →</button></a>
+  </div>
+
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+<script>
+
+const API_BASE = window.location.origin || "http://localhost:3000";
+
+// Toast function
+function showToast(message, type = 'success') {
+  let container = document.getElementById('toast-container');
+  const toast = document.createElement('div');
+  const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
+  toast.className = `toast toast-${type}`;
+  toast.innerHTML = `<span>${icon}</span> ${message}`;
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.classList.add('toast-hide');
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
+// Load checkout data
+let user = null;
+try { user = JSON.parse(localStorage.getItem("user")); } catch(e) {}
+
+if (!user) {
+  showToast("Please login to checkout", "error");
+  setTimeout(() => { window.location.href = "login.html"; }, 1500);
+}
+
+let total = Number(localStorage.getItem("checkoutTotal")) || 0;
+let cart = JSON.parse(localStorage.getItem("cart")) || [];
+
+document.getElementById("amount").innerText = total;
+
+// Show order items summary
+let itemsContainer = document.getElementById("order-items");
+if (cart.length > 0) {
+  let html = '<div style="border:1px solid #eee; border-radius:8px; padding:12px; margin-bottom:8px;">';
+  cart.forEach(item => {
+    html += `<div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid #f5f5f5;">
+      <span>${item.name} × ${item.qty || 1}</span>
+      <span>₹${item.price * (item.qty || 1)}</span>
+    </div>`;
+  });
+  html += '</div>';
+  itemsContainer.innerHTML = html;
+}
+
+// Pre-fill name if logged in
+if (user && user.name) {
+  document.getElementById("ship-name").value = user.name;
+}
+
+// Payment flow
+async function pay() {
+  // Validate shipping
+  const shipName = document.getElementById("ship-name").value.trim();
+  const shipAddress = document.getElementById("ship-address").value.trim();
+  const shipCity = document.getElementById("ship-city").value.trim();
+  const shipPincode = document.getElementById("ship-pincode").value.trim();
+  const shipPhone = document.getElementById("ship-phone").value.trim();
+
+  if (!shipName || !shipAddress || !shipCity || !shipPincode || !shipPhone) {
+    showToast("Please fill all shipping details", "error");
+    return;
+  }
+
+  if (total <= 0) {
+    showToast("Invalid order total", "error");
+    return;
+  }
+
+  try {
+    // Step 1: Create Razorpay order on server
+    showToast("Creating order...", "info");
+
+    const orderRes = await fetch(API_BASE + "/create-order", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ amount: total })
+    });
+
+    const orderData = await orderRes.json();
+
+    if (!orderData.success || !orderData.order) {
+      showToast("Failed to create order. Please try again.", "error");
+      return;
+    }
+
+    const razorpayOrder = orderData.order;
+
+    // Step 2: Open Razorpay checkout
+    var options = {
+      key: orderData.order.key || "rzp_test_SSFdBW8DNkY75A",
+      amount: razorpayOrder.amount,
+      currency: "INR",
+      name: "Rimbic",
+      description: "Sports Accessories",
+      order_id: razorpayOrder.id,
+
+      handler: async function(response) {
+        try {
+          // Step 3: Verify payment
+          const verifyRes = await fetch(API_BASE + "/verify-payment", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature
+            })
+          });
+
+          const verifyData = await verifyRes.json();
+
+          if (!verifyData.success) {
+            showToast("Payment verification failed!", "error");
+            return;
+          }
+
+          // Step 4: Save order to DB
+          const placeRes = await fetch(API_BASE + "/place-order", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              userId: user._id || user.email,
+              userEmail: user.email,
+              userName: user.name,
+              products: cart,
+              total: total,
+              shippingAddress: {
+                fullName: shipName,
+                address: shipAddress,
+                city: shipCity,
+                pincode: shipPincode,
+                phone: shipPhone
+              },
+              paymentId: response.razorpay_payment_id,
+              razorpayOrderId: response.razorpay_order_id
+            })
+          });
+
+          const placeData = await placeRes.json();
+
+          if (placeData.success) {
+            // Show confirmation
+            document.getElementById("checkout-form").style.display = "none";
+            document.getElementById("order-confirmation").style.display = "block";
+            document.getElementById("conf-order-id").innerText = placeData.order._id;
+            document.getElementById("conf-payment-id").innerText = response.razorpay_payment_id;
+
+            localStorage.removeItem("cart");
+            localStorage.removeItem("checkoutTotal");
+            showToast("Order Placed Successfully! 🎉");
+          } else {
+            showToast("Order saved but something went wrong", "error");
+          }
+
+        } catch(e) {
+          showToast("Payment received but order save failed. Contact support.", "error");
+          console.error(e);
+        }
+      },
+
+      prefill: {
+        name: user ? user.name : "",
+        email: user ? user.email : ""
+      },
+
+      theme: {
+        color: "#ff6a00"
+      }
+    };
+
+    var rzp = new Razorpay(options);
+    rzp.on('payment.failed', function(response) {
+      showToast("Payment failed: " + response.error.description, "error");
+    });
+    rzp.open();
+
+  } catch(e) {
+    showToast("Server error. Please try again.", "error");
+    console.error(e);
+  }
+}
+
+</script>
+
+</body>
+</html>
