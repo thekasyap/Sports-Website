@@ -294,81 +294,6 @@ async function checkout() {
 }
 
 
-// ---------- ADMIN FUNCTIONS ----------
-
-async function addProduct() {
-  let name = document.getElementById("name").value;
-  let price = document.getElementById("price").value;
-  let image = document.getElementById("image").value;
-  let categoryEl = document.getElementById("category");
-  let category = categoryEl ? categoryEl.value : "General";
-
-  if (!name || !price || !image) {
-    showToast("Please fill all required fields", "error");
-    return;
-  }
-
-  try {
-    const res = await fetch(API_BASE + "/add-product", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, price: Number(price), image, category })
-    });
-
-    const data = await res.json();
-    if (data.success) {
-      showToast("Product Added to Database!");
-      document.getElementById("name").value = "";
-      document.getElementById("price").value = "";
-      document.getElementById("image").value = "";
-      if (categoryEl) categoryEl.value = "General";
-      loadProducts();
-    } else {
-      showToast(data.message || "Failed to add product", "error");
-    }
-  } catch (e) {
-    showToast("Server not reachable", "error");
-  }
-}
-
-async function loadProducts() {
-  let container = document.getElementById("product-list");
-  if (!container) return;
-
-  try {
-    let res = await fetch(API_BASE + "/products");
-    let products = await res.json();
-    container.innerHTML = "";
-
-    products.forEach(p => {
-      container.innerHTML += `
-        <div class="admin-product">
-          <img src="${p.image}" alt="${p.name}">
-          <h3>${p.name}</h3>
-          <p>₹${p.price}</p>
-          <p style="color:#6b7280;font-size:13px;">${p.category || 'General'}</p>
-          <button onclick="deleteProduct('${p._id}')">Delete</button>
-        </div>
-      `;
-    });
-  } catch (e) {
-    // Server not running – silently skip
-  }
-}
-
-async function deleteProduct(id) {
-  try {
-    await fetch(API_BASE + "/delete-product/" + id, {
-      method: "DELETE"
-    });
-    showToast("Product deleted", "info");
-    loadProducts();
-  } catch (e) {
-    showToast("Failed to delete product", "error");
-  }
-}
-
-
 // ---------- INIT ON DOM READY ----------
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -377,6 +302,5 @@ document.addEventListener('DOMContentLoaded', () => {
   initScrollReveal();
   initNavbarScroll();
   initBackToTop();
-  loadProducts();
   updateQtyDisplay();
 });
