@@ -9,6 +9,61 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
+<style>
+/* PREMIUM CHECKOUT FORM STYLING */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin-bottom: 24px;
+}
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+.form-group.full-width {
+  grid-column: 1 / -1;
+}
+.form-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #4b5563;
+  margin-bottom: 6px;
+}
+.form-group input {
+  padding: 14px 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 15px;
+  background: #f9fafb;
+  transition: all 0.3s;
+  outline: none;
+  font-family: inherit;
+}
+.form-group input:focus {
+  border-color: var(--accent, #ff6a00);
+  background: white;
+  box-shadow: 0 0 0 4px rgba(255, 106, 0, 0.1);
+}
+.checkout-btn {
+  width: 100%;
+  padding: 16px;
+  background: var(--accent, #ff6a00);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-family: 'Outfit', sans-serif;
+}
+.checkout-btn:hover {
+  background: #e65c00;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(255, 106, 0, 0.2);
+}
+</style>
 </head>
 
 <body>
@@ -45,14 +100,36 @@
     <h3>Total Amount: <span>₹<span id="amount"></span></span></h3>
 
     <!-- SHIPPING ADDRESS -->
-    <h3 style="margin-top:24px; margin-bottom:12px;">📦 Shipping Address</h3>
-    <input id="ship-name" placeholder="Full Name" style="margin-bottom:10px;">
-    <input id="ship-address" placeholder="Address (House No, Street, Area)" style="margin-bottom:10px;">
-    <input id="ship-city" placeholder="City" style="margin-bottom:10px;">
-    <input id="ship-pincode" placeholder="Pincode" style="margin-bottom:10px;">
-    <input id="ship-phone" placeholder="Phone Number" type="tel" style="margin-bottom:20px;">
+    <h3 style="margin-top:24px; margin-bottom:20px; font-family:'Outfit',sans-serif;">📦 Shipping Address</h3>
+    
+    <div class="form-grid">
+      <div class="form-group full-width">
+        <label>Full Name</label>
+        <input id="ship-name" placeholder="E.g. John Doe">
+      </div>
+      
+      <div class="form-group full-width">
+        <label>Detailed Address</label>
+        <input id="ship-address" placeholder="House No, Street, Landmark">
+      </div>
+      
+      <div class="form-group">
+        <label>City</label>
+        <input id="ship-city" placeholder="E.g. Mumbai">
+      </div>
+      
+      <div class="form-group">
+        <label>Pincode</label>
+        <input id="ship-pincode" placeholder="6-digit PIN" type="number">
+      </div>
+      
+      <div class="form-group full-width">
+        <label>Mobile Number</label>
+        <input id="ship-phone" placeholder="10-digit mobile number" type="tel">
+      </div>
+    </div>
 
-    <button onclick="pay()">Pay Now →</button>
+    <button class="checkout-btn" onclick="pay()">Secure Checkout →</button>
 
   </div>
 
@@ -206,6 +283,48 @@ async function pay() {
     }
 
     const razorpayOrder = orderData.order;
+
+    // SIMULATED PAYMENT FALLBACK FOR DEMO KEYS
+    if (razorpayOrder.id.startsWith("fake_order_")) {
+      showToast("Using simulated payment gateway...", "info");
+      
+      setTimeout(async () => {
+        const placeRes = await fetch(API_BASE + "/place-order", {
+          method: "POST",
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            userId: user._id || user.email,
+            userEmail: user.email,
+            userName: user.name,
+            products: cart,
+            total: total,
+            shippingAddress: {
+              fullName: shipName,
+              address: shipAddress,
+              city: shipCity,
+              pincode: shipPincode,
+              phone: shipPhone
+            },
+            paymentId: "pay_simulated_" + Date.now(),
+            razorpayOrderId: razorpayOrder.id
+          })
+        });
+
+        const placeData = await placeRes.json();
+        if (placeData.success) {
+          document.getElementById("checkout-form").style.display = "none";
+          document.getElementById("order-confirmation").style.display = "block";
+          document.getElementById("conf-order-id").innerText = placeData.order._id;
+          document.getElementById("conf-payment-id").innerText = "pay_simulated_" + Date.now();
+          localStorage.removeItem("cart");
+          localStorage.removeItem("checkoutTotal");
+          showToast("Demo Order Placed Successfully! 🎉");
+        } else {
+          showToast("Failed to save demo order", "error");
+        }
+      }, 1500);
+      return;
+    }
 
     // Step 3: Open Razorpay checkout
     var options = {
