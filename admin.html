@@ -210,8 +210,19 @@
 <script src="main.js"></script>
 
 <script>
-const API_BASE = window.location.origin || "http://localhost:3000";
+var API_BASE = window.location.origin || "http://localhost:3000";
 let editingProductId = null;
+
+function getAdminToken() {
+  return localStorage.getItem("adminToken") || "";
+}
+
+function getAdminHeaders() {
+  return {
+    "Content-Type": "application/json",
+    "Authorization": "Bearer " + getAdminToken()
+  };
+}
 
 // Admin login - server side
 async function checkAdmin() {
@@ -249,13 +260,34 @@ async function checkAdmin() {
   }
 }
 
-// Check if already authed
-if (localStorage.getItem("adminToken")) {
+// Validate existing token server-side on page load
+async function validateAdminToken() {
+  const token = getAdminToken();
+  if (!token) return false;
+
   try {
-    // Simple check: if token exists, hide overlay
-    document.getElementById("admin-login-overlay").style.display = "none";
-  } catch(e) {}
+    const res = await fetch(API_BASE + "/verify-admin", {
+      headers: { "Authorization": "Bearer " + token }
+    });
+    const data = await res.json();
+    return data.success === true;
+  } catch(e) {
+    return false;
+  }
 }
+
+// Check if already authed
+(async function() {
+  if (getAdminToken()) {
+    const valid = await validateAdminToken();
+    if (valid) {
+      document.getElementById("admin-login-overlay").style.display = "none";
+      loadAdminProducts();
+    } else {
+      localStorage.removeItem("adminToken");
+    }
+  }
+})();
 
 // Load products for admin
 async function loadAdminProducts() {
@@ -280,7 +312,7 @@ async function loadAdminProducts() {
           <p><strong>₹${p.price}</strong></p>
           <p>${p.category || 'General'}</p>
           <div class="btn-group">
-            <button class="btn-edit" onclick="openEditModal('${p._id}','${p.name.replace(/'/g, "\\'")}',${p.price},'${p.image.replace(/'/g, "\\'")}','${(p.category || 'General').replace(/'/g, "\\'")}')">Edit</button>
+            <button class="btn-edit" onclick="openEditModal('${p._id}','${p.name.replace(/'/g, "\\'")}',${p.price},'${p.image.replace(/'/g, "\\'")}','${(p.category || 'General').replace(/'/g, "\\'")}')" >Edit</button>
             <button class="btn-delete" onclick="confirmDelete('${p._id}')">Delete</button>
           </div>
         </div>
@@ -293,9 +325,8 @@ async function loadAdminProducts() {
 
 // Override loadProducts from main.js to use admin version
 loadProducts = loadAdminProducts;
-loadAdminProducts();
 
-// Add product override
+// Add product with admin auth
 async function addProduct() {
   let name = document.getElementById("name").value.trim();
   let price = document.getElementById("price").value;
@@ -312,11 +343,17 @@ async function addProduct() {
   try {
     const res = await fetch(API_BASE + "/add-product", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getAdminHeaders(),
       body: JSON.stringify({ name, price: Number(price), image, category, description })
     });
 
     const data = await res.json();
+    if (res.status === 401 || res.status === 403) {
+      showToast("Admin session expired. Please re-login.", "error");
+      localStorage.removeItem("adminToken");
+      location.reload();
+      return;
+    }
     if (data.success) {
       showToast("Product Added! ✅");
       document.getElementById("name").value = "";
@@ -364,11 +401,17 @@ async function saveEdit() {
   try {
     const res = await fetch(API_BASE + "/update-product/" + editingProductId, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: getAdminHeaders(),
       body: JSON.stringify({ name, price: Number(price), image, category })
     });
 
     const data = await res.json();
+    if (res.status === 401 || res.status === 403) {
+      showToast("Admin session expired. Please re-login.", "error");
+      localStorage.removeItem("adminToken");
+      location.reload();
+      return;
+    }
     if (data.success) {
       showToast("Product Updated! ✅");
       closeEditModal();
@@ -389,8 +432,17 @@ function confirmDelete(id) {
 
 async function deleteAdminProduct(id) {
   try {
-    const res = await fetch(API_BASE + "/delete-product/" + id, { method: "DELETE" });
+    const res = await fetch(API_BASE + "/delete-product/" + id, {
+      method: "DELETE",
+      headers: getAdminHeaders()
+    });
     const data = await res.json();
+    if (res.status === 401 || res.status === 403) {
+      showToast("Admin session expired. Please re-login.", "error");
+      localStorage.removeItem("adminToken");
+      location.reload();
+      return;
+    }
     if (data.success) {
       showToast("Product Deleted", "info");
       loadAdminProducts();

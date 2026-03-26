@@ -156,7 +156,7 @@
 
 <script>
 
-const API_BASE = window.location.origin || "http://localhost:3000";
+var API_BASE = window.location.origin || "http://localhost:3000";
 
 /* LOAD PRODUCTS */
 async function loadShopProducts(){
@@ -241,10 +241,10 @@ function filterProducts(category, el){
 
   let products = document.querySelectorAll(".product");
   products.forEach(product => {
-    let name = product.querySelector("h3").innerText;
+    let productCategory = product.getAttribute('data-category') || '';
     if(category === "all"){
       product.style.display = "block";
-    } else if(name.toLowerCase().includes(category.toLowerCase())){
+    } else if(productCategory.toLowerCase() === category.toLowerCase()){
       product.style.display = "block";
     } else {
       product.style.display = "none";

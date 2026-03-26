@@ -209,6 +209,16 @@ function goCheckout(){
     showToast("Cart is empty", "error");
     return;
   }
+
+  // Check if user is logged in
+  let user = null;
+  try { user = JSON.parse(localStorage.getItem("user")); } catch(e) {}
+  if (!user || !localStorage.getItem("token")) {
+    showToast("Please login to checkout", "error");
+    setTimeout(() => { window.location.href = "login.html"; }, 1000);
+    return;
+  }
+
   localStorage.setItem("checkoutTotal", total);
   window.location.href = "checkout.html";
 }

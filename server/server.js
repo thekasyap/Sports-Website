@@ -8,11 +8,31 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const Razorpay = require("razorpay");
 const crypto = require("crypto");
+const helmet = require("helmet");
+const rateLimit = require("express-rate-limit");
 
 const app = express();
 
+// ============================================
+// SECURITY MIDDLEWARE
+// ============================================
+
+app.use(helmet({
+  contentSecurityPolicy: false, // disabled so inline scripts work
+  crossOriginEmbedderPolicy: false
+}));
+
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "1mb" }));
+
+// Rate limiter for auth endpoints
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20, // max 20 attempts per window
+  message: { success: false, message: "Too many attempts. Please try again after 15 minutes." },
+  standardHeaders: true,
+  legacyHeaders: false
+});
 
 // ============================================
 // ENVIRONMENT VARIABLES
@@ -39,7 +59,10 @@ const razorpay = new Razorpay({
 
 mongoose.connect(MONGODB_URI)
   .then(() => console.log("✅ MongoDB Connected"))
-  .catch(err => console.log("❌ MongoDB Error:", err.message));
+  .catch(err => {
+    console.log("❌ MongoDB Error:", err.message);
+    console.log("⚠️  Server will continue but database features won't work.");
+  });
 
 // ============================================
 // MODELS
@@ -105,6 +128,24 @@ const NewsletterSchema = new mongoose.Schema({
 const Newsletter = mongoose.model("Newsletter", NewsletterSchema);
 
 // ============================================
+// HELPERS
+// ============================================
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function isValidEmail(email) {
+  return EMAIL_REGEX.test(email);
+}
+
+function sanitizeHtml(str) {
+  if (typeof str !== "string") return str;
+  return str.replace(/[<>"'&]/g, (char) => {
+    const map = { '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#x27;', '&': '&amp;' };
+    return map[char] || char;
+  });
+}
+
+// ============================================
 // AUTH MIDDLEWARE
 // ============================================
 
@@ -124,17 +165,40 @@ function authMiddleware(req, res, next) {
   }
 }
 
+function adminMiddleware(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ success: false, message: "Admin token required" });
+  }
+
+  try {
+    const token = authHeader.split(" ")[1];
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (decoded.role !== "admin") {
+      return res.status(403).json({ success: false, message: "Admin access required" });
+    }
+    req.admin = decoded;
+    next();
+  } catch (err) {
+    return res.status(401).json({ success: false, message: "Invalid or expired admin token" });
+  }
+}
+
 // ============================================
 // AUTHENTICATION API
 // ============================================
 
 // --- Signup ---
-app.post("/signup", async (req, res) => {
+app.post("/signup", authLimiter, async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({ success: false, message: "All fields are required" });
+    }
+
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ success: false, message: "Invalid email format" });
     }
 
     if (password.length < 6) {
@@ -149,7 +213,7 @@ app.post("/signup", async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    const newUser = new User({ name, email, password: hashedPassword });
+    const newUser = new User({ name: sanitizeHtml(name), email, password: hashedPassword });
     await newUser.save();
 
     res.json({ success: true, message: "Account created successfully" });
@@ -159,12 +223,16 @@ app.post("/signup", async (req, res) => {
 });
 
 // --- Login ---
-app.post("/login", async (req, res) => {
+app.post("/login", authLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({ success: false, message: "Email and password are required" });
+    }
+
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ success: false, message: "Invalid email format" });
     }
 
     const user = await User.findOne({ email });
@@ -194,7 +262,7 @@ app.post("/login", async (req, res) => {
 });
 
 // --- Admin Login ---
-app.post("/admin-login", (req, res) => {
+app.post("/admin-login", authLimiter, (req, res) => {
   const { username, password } = req.body;
 
   if (!username || !password) {
@@ -209,11 +277,20 @@ app.post("/admin-login", (req, res) => {
   }
 });
 
+// --- Verify Token (for frontend auth guards) ---
+app.get("/verify-token", authMiddleware, (req, res) => {
+  res.json({ success: true, user: req.user });
+});
+
+app.get("/verify-admin", adminMiddleware, (req, res) => {
+  res.json({ success: true });
+});
+
 // ============================================
 // PRODUCT API
 // ============================================
 
-// --- Get all products ---
+// --- Get all products (public) ---
 app.get("/products", async (req, res) => {
   try {
     const products = await Product.find().sort({ createdAt: -1 });
@@ -223,7 +300,7 @@ app.get("/products", async (req, res) => {
   }
 });
 
-// --- Get single product ---
+// --- Get single product (public) ---
 app.get("/product/:id", async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
@@ -236,8 +313,8 @@ app.get("/product/:id", async (req, res) => {
   }
 });
 
-// --- Add product ---
-app.post("/add-product", async (req, res) => {
+// --- Add product (admin only) ---
+app.post("/add-product", adminMiddleware, async (req, res) => {
   try {
     const { name, price, image } = req.body;
 
@@ -245,7 +322,20 @@ app.post("/add-product", async (req, res) => {
       return res.status(400).json({ success: false, message: "Name, price, and image are required" });
     }
 
-    const newProduct = new Product(req.body);
+    if (typeof price !== "number" || price <= 0) {
+      return res.status(400).json({ success: false, message: "Price must be a positive number" });
+    }
+
+    const productData = {
+      name: sanitizeHtml(req.body.name),
+      price: req.body.price,
+      image: req.body.image,
+      category: sanitizeHtml(req.body.category || "General"),
+      description: sanitizeHtml(req.body.description || ""),
+      stock: req.body.stock || 100
+    };
+
+    const newProduct = new Product(productData);
     await newProduct.save();
     res.json({ success: true, product: newProduct });
   } catch (err) {
@@ -253,12 +343,20 @@ app.post("/add-product", async (req, res) => {
   }
 });
 
-// --- Update product ---
-app.put("/update-product/:id", async (req, res) => {
+// --- Update product (admin only) ---
+app.put("/update-product/:id", adminMiddleware, async (req, res) => {
   try {
+    const updateData = {};
+    if (req.body.name) updateData.name = sanitizeHtml(req.body.name);
+    if (req.body.price) updateData.price = req.body.price;
+    if (req.body.image) updateData.image = req.body.image;
+    if (req.body.category) updateData.category = sanitizeHtml(req.body.category);
+    if (req.body.description !== undefined) updateData.description = sanitizeHtml(req.body.description);
+    if (req.body.stock !== undefined) updateData.stock = req.body.stock;
+
     const updated = await Product.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      updateData,
       { new: true }
     );
 
@@ -272,8 +370,8 @@ app.put("/update-product/:id", async (req, res) => {
   }
 });
 
-// --- Delete product ---
-app.delete("/delete-product/:id", async (req, res) => {
+// --- Delete product (admin only) ---
+app.delete("/delete-product/:id", adminMiddleware, async (req, res) => {
   try {
     const deleted = await Product.findByIdAndDelete(req.params.id);
     if (!deleted) {
@@ -290,7 +388,7 @@ app.delete("/delete-product/:id", async (req, res) => {
 // ============================================
 
 // --- Create Razorpay Order ---
-app.post("/create-order", async (req, res) => {
+app.post("/create-order", authMiddleware, async (req, res) => {
   try {
     const { amount } = req.body;
 
@@ -312,7 +410,7 @@ app.post("/create-order", async (req, res) => {
 });
 
 // --- Verify Razorpay Payment ---
-app.post("/verify-payment", (req, res) => {
+app.post("/verify-payment", authMiddleware, (req, res) => {
   try {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
 
@@ -336,13 +434,27 @@ app.post("/verify-payment", (req, res) => {
   }
 });
 
-// --- Place Order ---
-app.post("/place-order", async (req, res) => {
+// --- Place Order (auth required) ---
+app.post("/place-order", authMiddleware, async (req, res) => {
   try {
     const { userId, userEmail, userName, products, total, shippingAddress, paymentId, razorpayOrderId } = req.body;
 
     if (!userId || !userEmail || !products || !total) {
       return res.status(400).json({ success: false, message: "Order details are incomplete" });
+    }
+
+    if (!Array.isArray(products) || products.length === 0) {
+      return res.status(400).json({ success: false, message: "Order must contain at least one product" });
+    }
+
+    // Decrement stock for each product
+    for (const item of products) {
+      if (item.name) {
+        await Product.findOneAndUpdate(
+          { name: item.name, stock: { $gte: (item.qty || 1) } },
+          { $inc: { stock: -(item.qty || 1) } }
+        );
+      }
     }
 
     const newOrder = new Order({
@@ -365,8 +477,8 @@ app.post("/place-order", async (req, res) => {
   }
 });
 
-// --- Get all orders (admin) ---
-app.get("/orders", async (req, res) => {
+// --- Get all orders (admin only) ---
+app.get("/orders", adminMiddleware, async (req, res) => {
   try {
     const orders = await Order.find().sort({ createdAt: -1 });
     res.json(orders);
@@ -375,9 +487,14 @@ app.get("/orders", async (req, res) => {
   }
 });
 
-// --- Get orders by user ---
-app.get("/orders/:userId", async (req, res) => {
+// --- Get orders by user (user auth required) ---
+app.get("/orders/:userId", authMiddleware, async (req, res) => {
   try {
+    // Ensure user can only access their own orders
+    if (req.user.userId !== req.params.userId && req.user.email !== req.params.userId) {
+      return res.status(403).json({ success: false, message: "Access denied" });
+    }
+
     const orders = await Order.find({ userId: req.params.userId }).sort({ createdAt: -1 });
     res.json(orders);
   } catch (err) {
@@ -385,10 +502,15 @@ app.get("/orders/:userId", async (req, res) => {
   }
 });
 
-// --- Update order status (admin) ---
-app.put("/update-order/:id", async (req, res) => {
+// --- Update order status (admin only) ---
+app.put("/update-order/:id", adminMiddleware, async (req, res) => {
   try {
     const { status } = req.body;
+    const validStatuses = ["Processing", "Shipped", "Delivered", "Cancelled"];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ success: false, message: "Invalid status. Must be: " + validStatuses.join(", ") });
+    }
+
     const updated = await Order.findByIdAndUpdate(
       req.params.id,
       { status },
@@ -403,11 +525,24 @@ app.put("/update-order/:id", async (req, res) => {
   }
 });
 
+// --- Delete order (admin only) ---
+app.delete("/delete-order/:id", adminMiddleware, async (req, res) => {
+  try {
+    const deleted = await Order.findByIdAndDelete(req.params.id);
+    if (!deleted) {
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
+    res.json({ success: true, message: "Order deleted" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Failed to delete order", error: err.message });
+  }
+});
+
 // ============================================
 // CONTACT & NEWSLETTER API
 // ============================================
 
-// --- Contact form ---
+// --- Contact form (public) ---
 app.post("/contact", async (req, res) => {
   try {
     const { name, email, message } = req.body;
@@ -416,7 +551,15 @@ app.post("/contact", async (req, res) => {
       return res.status(400).json({ success: false, message: "All fields are required" });
     }
 
-    const newContact = new Contact({ name, email, message });
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ success: false, message: "Invalid email format" });
+    }
+
+    const newContact = new Contact({
+      name: sanitizeHtml(name),
+      email,
+      message: sanitizeHtml(message)
+    });
     await newContact.save();
 
     res.json({ success: true, message: "Message received! We'll get back to you soon." });
@@ -425,8 +568,8 @@ app.post("/contact", async (req, res) => {
   }
 });
 
-// --- Get all contact messages (admin) ---
-app.get("/contacts", async (req, res) => {
+// --- Get all contact messages (admin only) ---
+app.get("/contacts", adminMiddleware, async (req, res) => {
   try {
     const contacts = await Contact.find().sort({ createdAt: -1 });
     res.json(contacts);
@@ -435,13 +578,17 @@ app.get("/contacts", async (req, res) => {
   }
 });
 
-// --- Newsletter subscribe ---
+// --- Newsletter subscribe (public) ---
 app.post("/newsletter", async (req, res) => {
   try {
     const { email } = req.body;
 
     if (!email) {
       return res.status(400).json({ success: false, message: "Email is required" });
+    }
+
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ success: false, message: "Invalid email format" });
     }
 
     const existing = await Newsletter.findOne({ email });
@@ -458,9 +605,48 @@ app.post("/newsletter", async (req, res) => {
   }
 });
 
+// --- Get all subscribers (admin only) ---
+app.get("/newsletters", adminMiddleware, async (req, res) => {
+  try {
+    const subscribers = await Newsletter.find().sort({ subscribedAt: -1 });
+    res.json(subscribers);
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Failed to fetch subscribers", error: err.message });
+  }
+});
+
 // --- Razorpay Key (for frontend) ---
 app.get("/razorpay-key", (req, res) => {
   res.json({ key: process.env.RAZORPAY_KEY_ID });
+});
+
+// --- Admin Stats ---
+app.get("/admin/stats", adminMiddleware, async (req, res) => {
+  try {
+    const productCount = await Product.countDocuments();
+    const orderCount = await Order.countDocuments();
+    const contactCount = await Contact.countDocuments();
+    const subscriberCount = await Newsletter.countDocuments();
+
+    const revenueResult = await Order.aggregate([
+      { $match: { status: { $ne: "Cancelled" } } },
+      { $group: { _id: null, total: { $sum: "$total" } } }
+    ]);
+    const totalRevenue = revenueResult.length > 0 ? revenueResult[0].total : 0;
+
+    res.json({
+      success: true,
+      stats: {
+        products: productCount,
+        orders: orderCount,
+        contacts: contactCount,
+        subscribers: subscriberCount,
+        revenue: totalRevenue
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Failed to fetch stats", error: err.message });
+  }
 });
 
 // ============================================
@@ -471,6 +657,19 @@ app.use(express.static(path.join(__dirname, "../")));
 
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "../index.html"));
+});
+
+// ============================================
+// 404 CATCH-ALL
+// ============================================
+
+app.use((req, res) => {
+  // For API routes, return JSON
+  if (req.path.startsWith("/api") || req.headers.accept?.includes("application/json")) {
+    return res.status(404).json({ success: false, message: "Route not found" });
+  }
+  // For page requests, redirect to home
+  res.status(404).sendFile(path.join(__dirname, "../index.html"));
 });
 
 // ============================================

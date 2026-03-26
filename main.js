@@ -2,7 +2,7 @@
 // RIMBIC SPORTS — MAIN JAVASCRIPT
 // ============================================
 
-const API_BASE = window.location.origin || "http://localhost:3000";
+var API_BASE = window.location.origin || "http://localhost:3000";
 
 // ---------- AUTH HELPERS ----------
 

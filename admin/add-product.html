@@ -84,7 +84,37 @@ button:hover { background: #1a1a2e; }
 </div>
 
 <script>
-const API_BASE = window.location.origin || "http://localhost:3000";
+var API_BASE = window.location.origin || "http://localhost:3000";
+
+function getAdminToken() {
+  return localStorage.getItem("adminToken") || "";
+}
+
+function getAdminHeaders() {
+  return {
+    "Content-Type": "application/json",
+    "Authorization": "Bearer " + getAdminToken()
+  };
+}
+
+// Auth guard
+(async function() {
+  const token = getAdminToken();
+  if (!token) {
+    window.location.href = "../admin.html";
+    return;
+  }
+  try {
+    const res = await fetch(API_BASE + "/verify-admin", {
+      headers: { "Authorization": "Bearer " + token }
+    });
+    const data = await res.json();
+    if (!data.success) {
+      localStorage.removeItem("adminToken");
+      window.location.href = "../admin.html";
+    }
+  } catch(e) {}
+})();
 
 async function addNewProduct() {
   let name = document.getElementById("name").value.trim();
@@ -101,11 +131,17 @@ async function addNewProduct() {
   try {
     const res = await fetch(API_BASE + "/add-product", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getAdminHeaders(),
       body: JSON.stringify({ name, price: Number(price), image, category, description })
     });
 
     const data = await res.json();
+    if (res.status === 401 || res.status === 403) {
+      alert("Admin session expired. Please re-login.");
+      localStorage.removeItem("adminToken");
+      window.location.href = "../admin.html";
+      return;
+    }
     if (data.success) {
       alert("Product Added!");
       window.location.href = "dashboard.html";

@@ -74,7 +74,7 @@
 
 <script>
 
-const API_BASE = window.location.origin || "http://localhost:3000";
+var API_BASE = window.location.origin || "http://localhost:3000";
 
 // Toast function
 function showToast(message, type = 'success') {
@@ -90,38 +90,62 @@ function showToast(message, type = 'success') {
   }, 3000);
 }
 
+// Auth helpers
+function getToken() {
+  return localStorage.getItem("token") || "";
+}
+
+function getAuthHeaders() {
+  return {
+    "Content-Type": "application/json",
+    "Authorization": "Bearer " + getToken()
+  };
+}
+
 // Load checkout data
 let user = null;
 try { user = JSON.parse(localStorage.getItem("user")); } catch(e) {}
 
-if (!user) {
+if (!user || !getToken()) {
   showToast("Please login to checkout", "error");
-  setTimeout(() => { window.location.href = "login.html"; }, 1500);
+  setTimeout(() => { window.location.href = "login.html"; }, 1000);
+  // Hide the form immediately
+  document.addEventListener("DOMContentLoaded", () => {
+    const form = document.getElementById("checkout-form");
+    if (form) form.style.display = "none";
+  });
 }
 
 let total = Number(localStorage.getItem("checkoutTotal")) || 0;
 let cart = JSON.parse(localStorage.getItem("cart")) || [];
 
-document.getElementById("amount").innerText = total;
-
-// Show order items summary
-let itemsContainer = document.getElementById("order-items");
-if (cart.length > 0) {
-  let html = '<div style="border:1px solid #eee; border-radius:8px; padding:12px; margin-bottom:8px;">';
-  cart.forEach(item => {
-    html += `<div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid #f5f5f5;">
-      <span>${item.name} × ${item.qty || 1}</span>
-      <span>₹${item.price * (item.qty || 1)}</span>
-    </div>`;
-  });
-  html += '</div>';
-  itemsContainer.innerHTML = html;
+if (cart.length === 0 && user) {
+  showToast("Your cart is empty", "error");
+  setTimeout(() => { window.location.href = "shop.html"; }, 1000);
 }
 
-// Pre-fill name if logged in
-if (user && user.name) {
-  document.getElementById("ship-name").value = user.name;
-}
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("amount").innerText = total;
+
+  // Show order items summary
+  let itemsContainer = document.getElementById("order-items");
+  if (cart.length > 0) {
+    let html = '<div style="border:1px solid #eee; border-radius:8px; padding:12px; margin-bottom:8px;">';
+    cart.forEach(item => {
+      html += `<div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid #f5f5f5;">
+        <span>${item.name} × ${item.qty || 1}</span>
+        <span>₹${item.price * (item.qty || 1)}</span>
+      </div>`;
+    });
+    html += '</div>';
+    itemsContainer.innerHTML = html;
+  }
+
+  // Pre-fill name if logged in
+  if (user && user.name) {
+    document.getElementById("ship-name").value = user.name;
+  }
+});
 
 // Payment flow
 async function pay() {
@@ -137,33 +161,55 @@ async function pay() {
     return;
   }
 
+  // Validate pincode (6 digits for India)
+  if (!/^\d{6}$/.test(shipPincode)) {
+    showToast("Enter a valid 6-digit pincode", "error");
+    return;
+  }
+
+  // Validate phone (10 digits for India)
+  if (!/^\d{10}$/.test(shipPhone.replace(/[\s\-+]/g, '').slice(-10))) {
+    showToast("Enter a valid 10-digit phone number", "error");
+    return;
+  }
+
   if (total <= 0) {
     showToast("Invalid order total", "error");
     return;
   }
 
   try {
-    // Step 1: Create Razorpay order on server
+    // Step 1: Fetch Razorpay key from server
+    const keyRes = await fetch(API_BASE + "/razorpay-key");
+    const keyData = await keyRes.json();
+    const razorpayKey = keyData.key;
+
+    if (!razorpayKey) {
+      showToast("Payment configuration error. Contact support.", "error");
+      return;
+    }
+
+    // Step 2: Create Razorpay order on server
     showToast("Creating order...", "info");
 
     const orderRes = await fetch(API_BASE + "/create-order", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ amount: total })
     });
 
     const orderData = await orderRes.json();
 
     if (!orderData.success || !orderData.order) {
-      showToast("Failed to create order. Please try again.", "error");
+      showToast(orderData.message || "Failed to create order. Please try again.", "error");
       return;
     }
 
     const razorpayOrder = orderData.order;
 
-    // Step 2: Open Razorpay checkout
+    // Step 3: Open Razorpay checkout
     var options = {
-      key: orderData.order.key || "rzp_test_SSFdBW8DNkY75A",
+      key: razorpayKey,
       amount: razorpayOrder.amount,
       currency: "INR",
       name: "Rimbic",
@@ -172,10 +218,10 @@ async function pay() {
 
       handler: async function(response) {
         try {
-          // Step 3: Verify payment
+          // Step 4: Verify payment
           const verifyRes = await fetch(API_BASE + "/verify-payment", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: getAuthHeaders(),
             body: JSON.stringify({
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
@@ -190,10 +236,10 @@ async function pay() {
             return;
           }
 
-          // Step 4: Save order to DB
+          // Step 5: Save order to DB
           const placeRes = await fetch(API_BASE + "/place-order", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: getAuthHeaders(),
             body: JSON.stringify({
               userId: user._id || user.email,
               userEmail: user.email,

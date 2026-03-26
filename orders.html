@@ -222,23 +222,65 @@
 <script src="main.js"></script>
 
 <script>
-const API_BASE = window.location.origin || "http://localhost:3000";
-let isAdmin = !!localStorage.getItem("adminToken");
+var API_BASE = window.location.origin || "http://localhost:3000";
+
+let user = null;
+try { user = JSON.parse(localStorage.getItem("user")); } catch(e) {}
+let token = localStorage.getItem("token") || "";
+let adminToken = localStorage.getItem("adminToken") || "";
+let isAdmin = !!adminToken;
+
+// Auth guard: must be logged in as user OR admin
+if (!user && !isAdmin) {
+  showToast("Please login to view orders", "error");
+  setTimeout(() => { window.location.href = "login.html"; }, 1000);
+}
 
 async function loadOrders(){
   const container = document.getElementById("orders");
-  let user = null;
-  try { user = JSON.parse(localStorage.getItem("user")); } catch(e) {}
 
   try {
-    let url = API_BASE + "/orders";
+    let url, headers;
 
-    // If logged in as user (not admin), show only user's orders
-    if (user && !isAdmin) {
+    if (isAdmin) {
+      // Admin sees all orders
+      url = API_BASE + "/orders";
+      headers = {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + adminToken
+      };
+    } else if (user) {
+      // User sees only their orders
       url = API_BASE + "/orders/" + (user._id || user.email);
+      headers = {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + token
+      };
+    } else {
+      container.innerHTML = `
+        <div class="orders-empty">
+          <span>🔒</span>
+          <h3>Please login to view orders</h3>
+          <a href="login.html" style="color:var(--accent,#ff6a00); font-weight:600;">Login →</a>
+        </div>
+      `;
+      return;
     }
 
-    let res = await fetch(url);
+    let res = await fetch(url, { headers });
+
+    if (res.status === 401 || res.status === 403) {
+      showToast("Session expired. Please login again.", "error");
+      if (isAdmin) {
+        localStorage.removeItem("adminToken");
+      } else {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+      }
+      setTimeout(() => { window.location.href = "login.html"; }, 1000);
+      return;
+    }
+
     let orders = await res.json();
 
     container.innerHTML = "";
@@ -329,7 +371,10 @@ async function updateOrderStatus(orderId) {
   try {
     const res = await fetch(API_BASE + "/update-order/" + orderId, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + adminToken
+      },
       body: JSON.stringify({ status })
     });
     const data = await res.json();
@@ -337,7 +382,7 @@ async function updateOrderStatus(orderId) {
       showToast("Order status updated to " + status);
       loadOrders();
     } else {
-      showToast("Failed to update", "error");
+      showToast(data.message || "Failed to update", "error");
     }
   } catch(e) {
     showToast("Server error", "error");

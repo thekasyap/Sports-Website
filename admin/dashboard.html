@@ -52,7 +52,7 @@ h1 {
   display: flex;
   gap: 20px;
   padding: 30px;
-  max-width: 900px;
+  max-width: 1100px;
   margin: auto;
   flex-wrap: wrap;
 }
@@ -149,6 +149,7 @@ h1 {
     <a href="../orders.html">📦 Orders</a>
     <a href="../admin.html">🛠️ Full Admin</a>
     <a href="../index.html">🏠 View Store</a>
+    <a href="#" onclick="adminLogout()">🚪 Logout</a>
   </div>
 </div>
 
@@ -163,6 +164,18 @@ h1 {
     <div class="stat-num" id="stat-orders">0</div>
     <div class="stat-label">Orders</div>
   </div>
+  <div class="stat-card">
+    <div class="stat-num" id="stat-revenue">₹0</div>
+    <div class="stat-label">Revenue</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-num" id="stat-contacts">0</div>
+    <div class="stat-label">Messages</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-num" id="stat-subscribers">0</div>
+    <div class="stat-label">Subscribers</div>
+  </div>
 </div>
 
 <a href="add-product.html" class="add-btn">➕ Add New Product</a>
@@ -170,7 +183,47 @@ h1 {
 <div class="admin-products" id="admin-products"></div>
 
 <script>
-const API_BASE = window.location.origin || "http://localhost:3000";
+var API_BASE = window.location.origin || "http://localhost:3000";
+
+function getAdminToken() {
+  return localStorage.getItem("adminToken") || "";
+}
+
+function getAdminHeaders() {
+  return {
+    "Content-Type": "application/json",
+    "Authorization": "Bearer " + getAdminToken()
+  };
+}
+
+// Auth guard — redirect if no valid admin token
+async function checkAdminAuth() {
+  const token = getAdminToken();
+  if (!token) {
+    window.location.href = "../admin.html";
+    return;
+  }
+
+  try {
+    const res = await fetch(API_BASE + "/verify-admin", {
+      headers: { "Authorization": "Bearer " + token }
+    });
+    const data = await res.json();
+    if (!data.success) {
+      localStorage.removeItem("adminToken");
+      window.location.href = "../admin.html";
+    }
+  } catch(e) {
+    // Server not reachable — still allow if token exists
+  }
+}
+
+checkAdminAuth();
+
+function adminLogout() {
+  localStorage.removeItem("adminToken");
+  window.location.href = "../admin.html";
+}
 
 async function loadProducts() {
   try {
@@ -179,8 +232,6 @@ async function loadProducts() {
 
     let container = document.getElementById("admin-products");
     container.innerHTML = "";
-
-    document.getElementById("stat-products").innerText = products.length;
 
     products.forEach(p => {
       container.innerHTML += `
@@ -203,16 +254,27 @@ async function loadProducts() {
 
 async function loadStats() {
   try {
-    let res = await fetch(API_BASE + "/orders");
-    let orders = await res.json();
-    document.getElementById("stat-orders").innerText = orders.length;
+    let res = await fetch(API_BASE + "/admin/stats", {
+      headers: getAdminHeaders()
+    });
+    let data = await res.json();
+    if (data.success) {
+      document.getElementById("stat-products").innerText = data.stats.products;
+      document.getElementById("stat-orders").innerText = data.stats.orders;
+      document.getElementById("stat-revenue").innerText = "₹" + (data.stats.revenue || 0).toLocaleString('en-IN');
+      document.getElementById("stat-contacts").innerText = data.stats.contacts;
+      document.getElementById("stat-subscribers").innerText = data.stats.subscribers;
+    }
   } catch(e) {}
 }
 
 async function deleteProduct(id) {
   if (!confirm("Delete this product?")) return;
   try {
-    await fetch(API_BASE + "/delete-product/" + id, { method: "DELETE" });
+    await fetch(API_BASE + "/delete-product/" + id, {
+      method: "DELETE",
+      headers: getAdminHeaders()
+    });
     loadProducts();
   } catch(e) {
     alert("Failed to delete");
